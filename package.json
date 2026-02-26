@@ -1,7 +1,9 @@
 {
     "name": "nova-video-studio",
     "private": true,
-    "version": "0.1.0",
+    "version": "1.0.0",
+    "description": "Premium All-in-One Video Downloader, Merger & Converter",
+    "author": "thinhphan <thinhphan.io.vn>",
     "main": "dist-electron/main.js",
     "scripts": {
         "dev": "vite",
