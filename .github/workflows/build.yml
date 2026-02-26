@@ -1,0 +1,161 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g. v1.0.0)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+env:
+  DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+
+jobs:
+  build:
+    name: Build Windows
+    runs-on: windows-latest
+
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📋 Get version
+        id: version
+        shell: bash
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
+          else
+            VERSION="v0.0.0-dev"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📌 Version: $VERSION"
+
+      - name: � Set package.json version
+        shell: bash
+        run: |
+          # Strip 'v' prefix for npm (v1.0.0 → 1.0.0)
+          CLEAN_VER="${{ steps.version.outputs.version }}"
+          CLEAN_VER="${CLEAN_VER#v}"
+          if [[ "$CLEAN_VER" =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            npm version "$CLEAN_VER" --no-git-tag-version --allow-same-version
+            echo "✅ package.json version set to $CLEAN_VER"
+          fi
+
+      - name: �🔧 Install dependencies
+        run: npm ci
+
+      - name: 🔽 Download yt-dlp
+        shell: bash
+        run: |
+          mkdir -p bin
+          curl -L -o bin/yt-dlp.exe https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe
+          echo "✅ yt-dlp downloaded"
+
+      - name: 🔽 Download FFmpeg
+        shell: bash
+        run: |
+          curl -L -o ffmpeg.zip https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip
+          7z x ffmpeg.zip -offtmp -y
+          cp fftmp/ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe bin/ffmpeg.exe
+          rm -rf fftmp ffmpeg.zip
+          echo "✅ FFmpeg downloaded"
+
+      - name: 🏗️ Build application
+        run: npm run build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📤 Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nova-video-studio-${{ steps.version.outputs.version }}
+          path: |
+            release/**/*.exe
+            release/**/*.yml
+          retention-days: 7
+
+      - name: 🚀 Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Nova Video Studio ${{ steps.version.outputs.version }}"
+          body: |
+            ## 🎬 Nova Video Studio ${{ steps.version.outputs.version }}
+
+            ### Downloads
+            - **Windows Installer** (.exe) — Download below
+
+            ### What's Included
+            - ✅ yt-dlp (latest)
+            - ✅ FFmpeg (latest)
+            - ✅ All features bundled
+
+            ### Changelog
+            See [commits](https://github.com/thinhphan109/NovaVideoStudio/commits/${{ steps.version.outputs.version }})
+          files: |
+            release/**/*.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ─── Discord Notifications ─────────────────────────────
+      - name: 🟢 Discord — Success
+        if: success() && env.DISCORD_WEBHOOK != ''
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          curl -H "Content-Type: application/json" \
+            -d "{
+              \"embeds\": [{
+                \"title\": \"✅ Nova Video Studio — Build Success\",
+                \"description\": \"Version **${VERSION}** built successfully!\",
+                \"color\": 5763719,
+                \"fields\": [
+                  {\"name\": \"🏷️ Version\", \"value\": \"\`${VERSION}\`\", \"inline\": true},
+                  {\"name\": \"🖥️ Platform\", \"value\": \"Windows x64\", \"inline\": true},
+                  {\"name\": \"📦 Artifact\", \"value\": \"NSIS Installer (.exe)\", \"inline\": true}
+                ],
+                \"footer\": {\"text\": \"Nova Video Studio CI/CD\"},
+                \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+              }]
+            }" \
+            "$DISCORD_WEBHOOK"
+
+      - name: 🔴 Discord — Failure
+        if: failure() && env.DISCORD_WEBHOOK != ''
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          curl -H "Content-Type: application/json" \
+            -d "{
+              \"embeds\": [{
+                \"title\": \"❌ Nova Video Studio — Build Failed\",
+                \"description\": \"Version **${VERSION}** build failed!\",
+                \"color\": 15548997,
+                \"fields\": [
+                  {\"name\": \"🏷️ Version\", \"value\": \"\`${VERSION}\`\", \"inline\": true},
+                  {\"name\": \"🔗 Logs\", \"value\": \"[View Logs](${RUN_URL})\", \"inline\": true}
+                ],
+                \"footer\": {\"text\": \"Nova Video Studio CI/CD\"},
+                \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+              }]
+            }" \
+            "$DISCORD_WEBHOOK"

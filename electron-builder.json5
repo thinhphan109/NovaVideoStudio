@@ -1,0 +1,36 @@
+{
+    "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
+    "appId": "com.thinhphan.nova-video-studio",
+    "productName": "Nova Video Studio",
+    "directories": {
+        "output": "release/${version}"
+    },
+    "files": [
+        "dist",
+        "dist-electron"
+    ],
+    "extraResources": [
+        {
+            "from": "bin",
+            "to": "bin",
+            "filter": ["**/*"]
+        }
+    ],
+    "win": {
+        "target": [
+            {
+                "target": "nsis",
+                "arch": ["x64"]
+            }
+        ],
+        "icon": "public/logo.svg",
+        "artifactName": "${productName}-${version}-Setup.${ext}"
+    },
+    "nsis": {
+        "oneClick": false,
+        "perMachine": false,
+        "allowToChangeInstallationDirectory": true,
+        "deleteAppDataOnUninstall": false,
+        "shortcutName": "Nova Video Studio"
+    }
+}

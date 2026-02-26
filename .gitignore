@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-electron/
+release/
+
+# Binary files (bundled separately)
+bin/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+
+# Downloaded media (dev testing)
+*.mp4
+*.mkv
+*.webm
+*.mp3
+*.m4a
+*.avi
+*.part
+*.ytdl
+*.aria2
+*.temp
+*.tmp
+
+# Agent/AI
+.agent/
+.gemini/

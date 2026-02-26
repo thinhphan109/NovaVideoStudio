@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #000000;
+  --color-foreground: #FAFAFA;
+  --color-primary: #FFFFFF;
+  --color-primary-foreground: #000000;
+  --color-muted: #18181B;
+  --color-muted-foreground: #A1A1AA;
+  --color-border: rgba(255, 255, 255, 0.05);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Custom Scrollbar for OLED */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.gradient-text {
+  @apply bg-clip-text text-transparent bg-gradient-to-br from-white to-white/40;
+}
+
+.glass {
+  @apply bg-white/5 border border-white/10 backdrop-blur-md;
+}
+
+/* Typography styles from Design System */
+h1,
+h2,
+h3,
+h4,
+.font-righteous {
+  font-family: 'Righteous', cursive;
+}
+
+body,
+.font-poppins {
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Smooth selection colors */
+::selection {
+  background: rgba(255, 255, 255, 0.99);
+  color: black;
+}
