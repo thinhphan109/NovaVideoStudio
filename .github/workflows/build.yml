@@ -136,22 +136,24 @@ jobs:
         shell: bash
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          curl -H "Content-Type: application/json" \
-            -d "{
-              \"embeds\": [{
-                \"title\": \"✅ Nova Video Studio — Build Success\",
-                \"description\": \"Version **${VERSION}** built successfully!\",
-                \"color\": 5763719,
-                \"fields\": [
-                  {\"name\": \"🏷️ Version\", \"value\": \"\`${VERSION}\`\", \"inline\": true},
-                  {\"name\": \"🖥️ Platform\", \"value\": \"Windows x64\", \"inline\": true},
-                  {\"name\": \"📦 Artifact\", \"value\": \"NSIS Installer (.exe)\", \"inline\": true}
-                ],
-                \"footer\": {\"text\": \"Nova Video Studio CI/CD\"},
-                \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
-              }]
-            }" \
-            "$DISCORD_WEBHOOK"
+          TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          cat <<EOF > success_payload.json
+          {
+            "embeds": [{
+              "title": "✅ Nova Video Studio — Build Success",
+              "description": "Version **${VERSION}** built successfully!",
+              "color": 5763719,
+              "fields": [
+                {"name": "🏷️ Version", "value": "\`${VERSION}\`", "inline": true},
+                {"name": "🖥️ Platform", "value": "Windows x64", "inline": true},
+                {"name": "📦 Artifact", "value": "NSIS Installer (.exe)", "inline": true}
+              ],
+              "footer": {"text": "Nova Video Studio CI/CD"},
+              "timestamp": "${TIMESTAMP}"
+            }]
+          }
+          EOF
+          curl -H "Content-Type: application/json" -d @success_payload.json "$DISCORD_WEBHOOK"
 
       - name: 🔴 Discord — Failure
         if: failure() && env.DISCORD_WEBHOOK != ''
@@ -159,18 +161,20 @@ jobs:
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          curl -H "Content-Type: application/json" \
-            -d "{
-              \"embeds\": [{
-                \"title\": \"❌ Nova Video Studio — Build Failed\",
-                \"description\": \"Version **${VERSION}** build failed!\",
-                \"color\": 15548997,
-                \"fields\": [
-                  {\"name\": \"🏷️ Version\", \"value\": \"\`${VERSION}\`\", \"inline\": true},
-                  {\"name\": \"🔗 Logs\", \"value\": \"[View Logs](${RUN_URL})\", \"inline\": true}
-                ],
-                \"footer\": {\"text\": \"Nova Video Studio CI/CD\"},
-                \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
-              }]
-            }" \
-            "$DISCORD_WEBHOOK"
+          TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          cat <<EOF > failure_payload.json
+          {
+            "embeds": [{
+              "title": "❌ Nova Video Studio — Build Failed",
+              "description": "Version **${VERSION}** build failed!",
+              "color": 15548997,
+              "fields": [
+                {"name": "🏷️ Version", "value": "\`${VERSION}\`", "inline": true},
+                {"name": "🔗 Logs", "value": "[View Logs](${RUN_URL})", "inline": true}
+              ],
+              "footer": {"text": "Nova Video Studio CI/CD"},
+              "timestamp": "${TIMESTAMP}"
+            }]
+          }
+          EOF
+          curl -H "Content-Type: application/json" -d @failure_payload.json "$DISCORD_WEBHOOK"
